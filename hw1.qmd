@@ -27,9 +27,23 @@ a. Find a transformation of weight that makes the relationship between height an
 
 a. At younger ages, the average heights of girls and boys are the same.  At what age does the average height of boys diverge from the average height of girls?  Support your answer with a clear and well constructed plot. Hint: you may want to use `geom_smooth` to more clearly visualize trends.
 
-```{r, message=FALSE}
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+
 body_df <- read_csv("height_weight.csv")
 # Your R code here
+ggplot(body_df, aes(x = height, y = weight, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE) +
+  facet_wrap(~sex) +
+  scale_color_viridis_c(option = "plasma") +
+  labs(
+    title = "Relationship between Height and Weight",
+    subtitle = "Faceted by Sex, colored by Age",
+    x = "Height (cm)",
+    y = "Weight (kg)",
+    color = "Age (Years)"
+  ) +
+  theme_bw()
 ```
 
 ## Question 2 (20 pt)
@@ -66,7 +80,7 @@ Using the 100 such statistics verify that the empirical distribution of these st
 This question considers the analysis of U.S. birth data.  The data consists of the numbers of infants born in each month from 2016 through 2023 separated by state and race/ethnicity.  The data also includes the number of women age 15-44 in each state and race/ethnicity (the `denom` variables).  The prefix in the column variables indicates the race/ethnicity and the suffix indicates whether the variable tracks births or number of women.
 
 ```{r, echo=TRUE}
-birth_data <- read_csv("birth_data.csv", show_col_types = FALSE)
+birth_data <- read_csv("birth_data-1.csv", show_col_types = FALSE)
 head(birth_data)
 ```
 
