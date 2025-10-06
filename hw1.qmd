@@ -23,9 +23,9 @@ Investigate the relationship between bodyweight, height and age in the data in `
 
 a. Make a plots comparing height and weight, colored by age, and faceted by gender.  Describe how weight varies as a function of height (e.g. is it approximiately linear, quadratic, etc?).  Also comment on the variance of weight given age at different ages.
 
-a. Find a transformation of weight that makes the relationship between height and weight more linear.  Make the above plots replacing weight with the transformed weight.  
+b. Find a transformation of weight that makes the relationship between height and weight more linear.  Make the above plots replacing weight with the transformed weight.  
 
-a. At younger ages, the average heights of girls and boys are the same.  At what age does the average height of boys diverge from the average height of girls?  Support your answer with a clear and well constructed plot. Hint: you may want to use `geom_smooth` to more clearly visualize trends.
+c. At younger ages, the average heights of girls and boys are the same.  At what age does the average height of boys diverge from the average height of girls?  Support your answer with a clear and well constructed plot. Hint: you may want to use `geom_smooth` to more clearly visualize trends.
 
 ```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
 
@@ -33,6 +33,7 @@ body_df <- read_csv("height_weight.csv")
 # Your R code here
 ggplot(body_df, aes(x = height, y = weight, color = age)) +
   geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +
   geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE) +
   facet_wrap(~sex) +
   scale_color_viridis_c(option = "plasma") +
@@ -45,6 +46,12 @@ ggplot(body_df, aes(x = height, y = weight, color = age)) +
   ) +
   theme_bw()
 ```
+The plot displays two regression lines for each sex, representing both linear and quadratic relationships between age and weight. The quadratic model demonstrates superior fit compared to the linear model for both male and female subjects. Additionally, the analysis reveals heteroscedasticity in the data, as the variance of weight conditional on age is not constant and appears to decrease with increasing age.
+
+
+
+
+
 
 ## Question 2 (20 pt)
 
