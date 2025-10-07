@@ -14,6 +14,7 @@ date: "Due 10/13/2025"
 library(tidyverse)
 library(lubridate)
 library(patchwork)
+library(colorspace) 
 ```
 
 
@@ -36,20 +37,20 @@ ggplot(body_df, aes(x = height, y = weight, color = age)) +
   geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +
   geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = FALSE) +
   facet_wrap(~sex) +
-  scale_color_viridis_c(option = "plasma") +
+  scale_color_continuous_sequential(palette = "Heat 2")+
   labs(
     title = "Relationship between Height and Weight",
     subtitle = "Faceted by Sex, colored by Age",
-    x = "Height (cm)",
-    y = "Weight (kg)",
-    color = "Age (Years)"
+    x = "Height ",
+    y = "Weight ",
+    color = "Age "
   ) +
-  theme_bw()
+  theme_bw(base_size = 14)
 ```
 The plot displays two regression lines for each sex, representing both linear and quadratic relationships between age and weight. The quadratic model demonstrates superior fit compared to the linear model for both male and female subjects. Additionally, the analysis reveals heteroscedasticity in the data, as the variance of weight conditional on age is not constant and appears to decrease with increasing age.
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
 
-
-
+```
 
 
 
