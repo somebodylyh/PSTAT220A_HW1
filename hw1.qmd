@@ -15,6 +15,7 @@ library(tidyverse)
 library(lubridate)
 library(patchwork)
 library(colorspace) 
+library(mgcv)
 ```
 
 
@@ -49,11 +50,59 @@ ggplot(body_df, aes(x = height, y = weight, color = age)) +
 ```
 The plot displays two regression lines for each sex, representing both linear and quadratic relationships between age and weight. The quadratic model demonstrates superior fit compared to the linear model for both male and female subjects. Additionally, the analysis reveals heteroscedasticity in the data, as the variance of weight conditional on age is not constant and appears to decrease with increasing age.
 ```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+body_df <- read_csv("height_weight.csv")
+body_df_trans <- body_df %>%
+  mutate(
+    weight_sqrt   = sqrt(weight),
+    weight_log    = log(weight),
+  )
 
+ggplot(body_df_trans, aes(x = height, y = weight_sqrt, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +
+  scale_color_continuous_sequential(palette = "Heat 2")+
+  labs(
+    title = "Relationship between Height and Weight",
+    subtitle = "Transformed Weight_sqrt",
+    x = "Height ",
+    y = "Weight_sqrt ",
+    color = "Age "
+  ) +
+  theme_bw(base_size = 14)
+
+ggplot(body_df_trans, aes(x = height, y = weight_log, color = age)) +
+  geom_point() +
+  geom_smooth(method = "lm", formula = y ~ x, se = FALSE) +
+  scale_color_continuous_sequential(palette = "Heat 2")+
+  labs(
+    title = "Relationship between Height and Weight",
+    subtitle = "Transformed Weight_log",
+    x = "Height ",
+    y = "Weight_log ",
+    color = "Age "
+  ) +
+  theme_bw(base_size = 14)
 ```
-
-
-
+The first plot transforms the weight to the square root of the weight, and the second plot transforms the weight to the natural logarithm of the weight. Both transformations make the relationship between height and weight more linear. However, the natural logarithm transformation is more linear than the square root transformation. As we can see from the plots, the points are more tightly clustered around the regression line in the natural logarithm transformation.
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+body_df <- read_csv("height_weight.csv")
+summary_date <- body_df %>%
+  group_by(sex, age) %>%
+  summarise(mean_height = mean(height))
+ggplot(summary_date, aes(x = age, y = mean_height, color = sex)) +
+  geom_point() +
+  geom_smooth(method = "gam", formula = y ~ s(x), se = FALSE) +
+  scale_color_discrete(palette = "Set1")+
+  labs(
+    title = "Relationship between Age and Height of Boys and Girls",
+    subtitle = "Faceted by Sex",
+    x = "Age ",
+    y = "Height ",
+    color = "Sex "
+  ) +
+  theme_bw(base_size = 14)
+```
+As we can see from the plot, the average height of boys and girls is the same at younger ages. However, the average height of boys diverges from the average height of girls at nearly 14 years old.
 ## Question 2 (20 pt)
 
 The following data are failure times in hours of 45 transmissions from caterpillar tractors belonging to a particular American company:
@@ -68,8 +117,65 @@ failure_times <- c(4381, 3953, 2603, 2320, 1161, 3286, 6914, 4007, 3168,
 
 Use QQ-plots to examine the applicability of the following models for the probability distribution of failure time: normal, lognormal, exponential and Gamma (hint: check out the function `fitdistr` in the library MASS to fit these distributions. You may rescale the data if you have numerical problems). For the model that fits best (explain how you determine which model fits best), plot the PDF and the kernel density estimate of the data on the same plot.
 
-```{r}
-# Your R code here
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+# Your R code library(MASS)
+library(MASS)
+x <- failure_times / 1000
+
+fit_norm <- fitdistr(x, "normal")
+fit_logn <- fitdistr(x, "lognormal")
+fit_exp  <- fitdistr(x, "exponential")
+shape0 <- mean(x)^2 / var(x)
+rate0  <- mean(x) / var(x)
+fit_gam  <- fitdistr(x, "gamma", start = list(shape = shape0, rate = rate0))
+
+op <- par(mfrow=c(2,2), mar=c(4,4,2,1))
+n <- length(x); p <- ppoints(n); xs <- sort(x)
+
+qN <- qnorm(p, mean=fit_norm$estimate["mean"], sd=fit_norm$estimate["sd"])
+plot(qN, xs, main="Normal QQ", xlab="Theoretical", ylab="Sample"); abline(0,1,col=2)
+
+qLN <- qlnorm(p, meanlog=fit_logn$estimate["meanlog"], sdlog=fit_logn$estimate["sdlog"])
+plot(qLN, xs, main="Lognormal QQ", xlab="Theoretical", ylab="Sample"); abline(0,1,col=2)
+
+qE <- qexp(p, rate=fit_exp$estimate["rate"])
+plot(qE, xs, main="Exponential QQ", xlab="Theoretical", ylab="Sample"); abline(0,1,col=2)
+
+qG <- qgamma(p, shape=fit_gam$estimate["shape"], rate=fit_gam$estimate["rate"])
+plot(qG, xs, main="Gamma QQ", xlab="Theoretical", ylab="Sample"); abline(0,1,col=2)
+par(op)
+aic <- c(
+  normal     = 2*2 - 2*fit_norm$loglik,
+  lognormal  = 2*2 - 2*fit_logn$loglik,
+  exponential= 2*1 - 2*fit_exp$loglik,
+  gamma      = 2*2 - 2*fit_gam$loglik
+)
+aic
+
+best <- names(which.min(aic))
+best
+
+# Overlay KDE and fitted PDF of the best model
+dens <- density(x)
+grid <- seq(min(x), max(x), length.out = 400)
+
+pdf_y <- switch(best,
+  normal       = dnorm(grid, mean = fit_norm$estimate["mean"], sd = fit_norm$estimate["sd"]),
+  lognormal    = dlnorm(grid, meanlog = fit_logn$estimate["meanlog"], sdlog = fit_logn$estimate["sdlog"]),
+  exponential  = dexp(grid, rate = fit_exp$estimate["rate"]),
+  gamma        = dgamma(grid, shape = fit_gam$estimate["shape"], rate = fit_gam$estimate["rate"])
+)
+
+ggplot() +
+  geom_line(aes(x = dens$x, y = dens$y), color = "#377eb8", linewidth = 1.1) +
+  geom_line(aes(x = grid, y = pdf_y), color = "#e41a1c", linewidth = 1.1) +
+  labs(
+    title = paste("KDE (blue) vs Fitted", best, "PDF (red)"),
+    x = "Failure time (10^3 hours)",
+    y = "Density"
+  ) +
+  theme_bw(base_size = 14)
+
 ```
 
 ## Question 3 (15 pt)
