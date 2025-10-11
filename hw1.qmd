@@ -29,7 +29,7 @@ b. Find a transformation of weight that makes the relationship between height an
 
 c. At younger ages, the average heights of girls and boys are the same.  At what age does the average height of boys diverge from the average height of girls?  Support your answer with a clear and well constructed plot. Hint: you may want to use `geom_smooth` to more clearly visualize trends.
 
-```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%", echo=TRUE}
 
 body_df <- read_csv("height_weight.csv")
 # Your R code here
@@ -49,7 +49,7 @@ ggplot(body_df, aes(x = height, y = weight, color = age)) +
   theme_bw(base_size = 14)
 ```
 The plot displays two regression lines for each sex, representing both linear and quadratic relationships between age and weight. The quadratic model demonstrates superior fit compared to the linear model for both male and female subjects. Additionally, the analysis reveals heteroscedasticity in the data, as the variance of weight conditional on age is not constant and appears to decrease with increasing age.
-```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%", echo=TRUE}
 body_df <- read_csv("height_weight.csv")
 body_df_trans <- body_df %>%
   mutate(
@@ -84,7 +84,7 @@ ggplot(body_df_trans, aes(x = height, y = weight_log, color = age)) +
   theme_bw(base_size = 14)
 ```
 The first plot transforms the weight to the square root of the weight, and the second plot transforms the weight to the natural logarithm of the weight. Both transformations make the relationship between height and weight more linear. However, the natural logarithm transformation is more linear than the square root transformation. As we can see from the plots, the points are more tightly clustered around the regression line in the natural logarithm transformation.
-```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%", echo=TRUE}
 body_df <- read_csv("height_weight.csv")
 summary_date <- body_df %>%
   group_by(sex, age) %>%
@@ -118,7 +118,7 @@ failure_times <- c(4381, 3953, 2603, 2320, 1161, 3286, 6914, 4007, 3168,
 
 Use QQ-plots to examine the applicability of the following models for the probability distribution of failure time: normal, lognormal, exponential and Gamma (hint: check out the function `fitdistr` in the library MASS to fit these distributions. You may rescale the data if you have numerical problems). For the model that fits best (explain how you determine which model fits best), plot the PDF and the kernel density estimate of the data on the same plot.
 
-```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%"}
+```{r, message=FALSE, fig.width=10, fig.asp=0.6, warning=FALSE, out.width="100%", echo=TRUE}
 # Your R code library(MASS)
 library(MASS)
 x <- failure_times / 1000
@@ -186,7 +186,7 @@ Generate 600 random samples from the normal distribution with mean 10 and standa
 
 Using the 100 such statistics verify that the empirical distribution of these statistics actually follows the expected distribution.
 
-```{r}
+```{r, echo=TRUE}
 # Your R code here
 set.seed(604)
 n_groups <- 100; n <- 6; mu <- 10; sigma <- 5
@@ -229,7 +229,7 @@ head(birth_data)
 
 a. Use `pivot_longer` to make the data tidy.  Hint: you need to simultaneously pivot on `birth` columns and `denom` columns.  To do so read the documentation for `pivot_longer` and use `.value` in the `names_to` argument (see e.g. the last example in the documentation).  It might also help to use `names_sep`.  After tidying, your data set should have 7 columns: `state`, `state_code`, `year`, `month`, `race`, `births` and `denom`. Print the first 10 rows and last 10 rows of your tidy data.
 
-```{r}
+```{r, echo=TRUE}
 # Your code here
 tidy_birth <- birth_data %>%
   pivot_longer(
@@ -251,7 +251,7 @@ cat("Column names:", names(tidy_birth), "\n")
 
 b.  Create two new variable: `date` and `birth_rate`.  To create `date`, use the `my` function from the `lubridate` package which takes a string consisting of the month followed by the year and returns the appropriate date object. `birth_rate` should have units of births per 1000 women 15-44 per year (note: don't forget to adjust for the fact that we have monthly data.  As a reference, the national fertility rate is about 55 births per 1000 women aged 15-44 per year). Use the tidy data you just computed to plot the birth rate in California vs `date`.  You should have lines with distinct colors for the birth rate in each race and overall.  Which race/ethnicities tend to have the highest birth rates? Lowest?
 
-```{r}
+```{r, echo=TRUE}
 ## Your code here
 library(lubridate)
 
@@ -291,18 +291,17 @@ The highest birth rates are observed in Hispanic populations, followed by other 
 
 c.  Create a new variable using `mutate` which corresponds to the *relative* birth rate for each race category.  The relative birth rate should be computed by grouping by race, taking the birth rate and dividing by the mean birth rate for that race over the full range of data and then ungrouping again. Plot the relative birth rates for all races on the same plot. What new observations do you make about the data when plotting the relative birth rate? Are any patterns clearer in this plot than they were in the previous plot?
 
-```{r}
-# 计算相对出生率（标准化到各种族的平均值）
+```{r, echo=TRUE}
+
 tidy_birth_relative <- tidy_birth_clean %>%
   group_by(race) %>%
   mutate(relative_birth_rate = birth_rate / mean(birth_rate)) %>%
   ungroup()
 
-# 筛选加州数据用于绘图
+
 california_relative <- tidy_birth_relative %>%
   filter(state == "California")
 
-# 绘制相对出生率趋势图
 ggplot(california_relative, aes(x = date, y = relative_birth_rate, color = race)) +
   geom_line(linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = "gray30", linewidth = 0.8) +
@@ -320,7 +319,7 @@ Relative rates make patterns clearer: all groups move together with similar seas
 
 d. Make a visualization of your choice that clearly highlights something about the data that was not evident in the previous plots.  For example, you can explore seasonality in the trends or variation across race and/or states. Describe what you learned from your plot. The best visualizations will be shared in class (given your approval).
 
-```{r}
+```{r, echo=TRUE}
 recovery_data <- tidy_birth_relative %>%
   filter(state == "California", year >= 2019) %>%
   group_by(race) %>%
