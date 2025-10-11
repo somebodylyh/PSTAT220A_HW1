@@ -103,6 +103,7 @@ ggplot(summary_date, aes(x = age, y = mean_height, color = sex)) +
   theme_bw(base_size = 14)
 ```
 As we can see from the plot, the average height of boys and girls is the same at younger ages. However, the average height of boys diverges from the average height of girls at nearly 14 years old.
+
 ## Question 2 (20 pt)
 
 The following data are failure times in hours of 45 transmissions from caterpillar tractors belonging to a particular American company:
@@ -155,7 +156,6 @@ aic
 best <- names(which.min(aic))
 best
 
-# Overlay KDE and fitted PDF of the best model
 dens <- density(x)
 grid <- seq(min(x), max(x), length.out = 400)
 
@@ -177,6 +177,8 @@ ggplot() +
   theme_bw(base_size = 14)
 
 ```
+Model choice is based on joint criteria: (i) visual conformity in QQ-plots (closest to the 45-degree line, minimal systematic departures), and (ii) the smallest AIC among Normal, Lognormal, Exponential, and Gamma candidates. As we can see from the AIC values, the gamma distribution fits the best, the distribution. KDE (blue) and fitted Gamma PDF (red) for failure time (10^3 hours). The Gamma model matches the overall shape and right tail well, with a slight deviation near the peak.
+
 
 ## Question 3 (15 pt)
 
@@ -186,8 +188,34 @@ Using the 100 such statistics verify that the empirical distribution of these st
 
 ```{r}
 # Your R code here
-```
+set.seed(604)
+n_groups <- 100; n <- 6; mu <- 10; sigma <- 5
 
+x <- rnorm(n_groups * n, mean = mu, sd = sigma)
+m <- matrix(x, ncol = n, byrow = TRUE)
+
+xbar <- rowMeans(m)
+s2   <- apply(m, 1, var)    
+Tstat <- (xbar - mu) / sqrt(s2 / n)
+
+df <- n - 1
+
+p <- ppoints(length(Tstat))
+theo <- qt(p, df = df)
+plot(theo, sort(Tstat),
+     xlab = "Theoretical t(5) quantiles", ylab = "Sample quantiles",
+     main = "QQ-plot: Tstat vs t(5)")
+abline(0, 1, col = 2, lwd = 2)
+
+hist(Tstat, prob = TRUE, breaks = 20, col = "grey85", border = "white",
+     main = "Empirical T vs t(5) density", xlab = "T statistic")
+lines(density(Tstat), col = "#377eb8", lwd = 2)
+curve(dt(x, df = df), add = TRUE, col = "#D55E00", lwd = 2)
+ks.test(Tstat, "pt", df = df)
+```
+Since we are using the sample standard deviation $S$ to estimate the population standard deviation, the statistic $T = (\bar{X} - 10)/\sqrt{S^2/6}$ follows a t-distribution with $n-1 = 5$ degrees of freedom.
+
+In this experiment, we generated 600 N(10, 5²) samples, split them into 100 groups of six, and computed T = $(\bar{X} - 10)/\sqrt{S^2/6}$ per group, which theoretically follows a t distribution with 5 degrees of freedom. The QQ-plot of the 100 T values against t5 quantiles lies close to the 45° line with only slight tail deviations, and the histogram/KDE matches the t5 density well; a KS test (D $approx$ 0.073, p $approx$ 0.667) likewise fails to reject t5. Overall, the empirical evidence is consistent with T $\sim$ t(5).
 
 ## Question 4 (40 pt)
 
@@ -202,26 +230,125 @@ head(birth_data)
 a. Use `pivot_longer` to make the data tidy.  Hint: you need to simultaneously pivot on `birth` columns and `denom` columns.  To do so read the documentation for `pivot_longer` and use `.value` in the `names_to` argument (see e.g. the last example in the documentation).  It might also help to use `names_sep`.  After tidying, your data set should have 7 columns: `state`, `state_code`, `year`, `month`, `race`, `births` and `denom`. Print the first 10 rows and last 10 rows of your tidy data.
 
 ```{r}
-## Your code here
+# Your code here
+tidy_birth <- birth_data %>%
+  pivot_longer(
+    cols = ends_with("_births") | ends_with("_denom"),  
+    names_to = c("race", ".value"),                    
+    names_sep = "_"                                   
+  )
+
+cat("First 10 rows:\n")
+head(tidy_birth, 10)
+
+cat("\nLast 10 rows:\n")
+tail(tidy_birth, 10)
+
+cat("\nData dimensions:", dim(tidy_birth), "\n")
+cat("Column names:", names(tidy_birth), "\n")
 ```
 
 
 b.  Create two new variable: `date` and `birth_rate`.  To create `date`, use the `my` function from the `lubridate` package which takes a string consisting of the month followed by the year and returns the appropriate date object. `birth_rate` should have units of births per 1000 women 15-44 per year (note: don't forget to adjust for the fact that we have monthly data.  As a reference, the national fertility rate is about 55 births per 1000 women aged 15-44 per year). Use the tidy data you just computed to plot the birth rate in California vs `date`.  You should have lines with distinct colors for the birth rate in each race and overall.  Which race/ethnicities tend to have the highest birth rates? Lowest?
 
 ```{r}
-# Your code here
+## Your code here
+library(lubridate)
+
+
+tidy_birth_clean <- tidy_birth %>%
+  filter(!is.na(denom), !is.na(births))
+
+tidy_birth_clean <- tidy_birth_clean %>%
+  mutate(
+    date = my(paste(month, year)),                    
+    birth_rate = (births / denom) * 1000 * 12         
+  )
+
+california_data <- tidy_birth_clean %>%
+  filter(state == "California")
+
+ggplot(california_data, aes(x = date, y = birth_rate, color = race)) +
+  geom_line(linewidth = 1) +
+  labs(
+    title = "Birth Rate in California by Race/Ethnicity (2016-2022)",
+    x = "Date",
+    y = "Birth Rate (per 1000 women aged 15-44 per year)",
+    color = "Race/Ethnicity"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
+
+california_summary <- california_data %>%
+  group_by(race) %>%
+  summarize(avg_birth_rate = mean(birth_rate, na.rm = TRUE)) %>%
+  arrange(desc(avg_birth_rate))
+
+print(california_summary)
 ```
+
+The highest birth rates are observed in Hispanic populations, followed by other races, while Black populations have the lowest rates, with White populations also at the lower end. This difference is consistent across all races, suggesting a broader pattern rather than a regional variation. The seasonal fluctuations indicate periodic variations in birth rates across months, which could be attributed to seasonal changes in healthcare access or societal norms. 
 
 c.  Create a new variable using `mutate` which corresponds to the *relative* birth rate for each race category.  The relative birth rate should be computed by grouping by race, taking the birth rate and dividing by the mean birth rate for that race over the full range of data and then ungrouping again. Plot the relative birth rates for all races on the same plot. What new observations do you make about the data when plotting the relative birth rate? Are any patterns clearer in this plot than they were in the previous plot?
 
 ```{r}
-## Your code here
+# 计算相对出生率（标准化到各种族的平均值）
+tidy_birth_relative <- tidy_birth_clean %>%
+  group_by(race) %>%
+  mutate(relative_birth_rate = birth_rate / mean(birth_rate)) %>%
+  ungroup()
+
+# 筛选加州数据用于绘图
+california_relative <- tidy_birth_relative %>%
+  filter(state == "California")
+
+# 绘制相对出生率趋势图
+ggplot(california_relative, aes(x = date, y = relative_birth_rate, color = race)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = "gray30", linewidth = 0.8) +
+  labs(
+    title = "Relative Birth Rate in California by Race/Ethnicity",
+    x = "Date",
+    y = "Relative Birth Rate (normalized to mean = 1)",
+    color = "Race/Ethnicity"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
 
+Relative rates make patterns clearer: all groups move together with similar seasonality and a clear drop around 2020 (a common shock, likely COVID‑19). Over time many series shift from above 1 in 2016 to below 1 by 2022, indicating a broad decline. The "otherrace" series varies the most, while the others are steadier. Normalization shifts the focus from level differences to proportional changes over time.
 
 d. Make a visualization of your choice that clearly highlights something about the data that was not evident in the previous plots.  For example, you can explore seasonality in the trends or variation across race and/or states. Describe what you learned from your plot. The best visualizations will be shared in class (given your approval).
 
 ```{r}
-## Your code here
+recovery_data <- tidy_birth_relative %>%
+  filter(state == "California", year >= 2019) %>%
+  group_by(race) %>%
+  mutate(
+    baseline_2019 = mean(birth_rate[year == 2019], na.rm = TRUE),
+    recovery_index = birth_rate / baseline_2019 * 100
+  ) %>%
+  ungroup()
+
+ggplot(recovery_data, aes(x = date, y = recovery_index, color = race)) +
+  geom_line(linewidth = 1) +
+  geom_hline(yintercept = 100, linetype = "dashed", color = "gray30", linewidth = 0.8) +
+  geom_vline(xintercept = as.Date("2020-03-01"), linetype = "dotted", 
+             color = "red", alpha = 0.5) +
+  annotate("text", x = as.Date("2019-06-01"), y = 100, 
+           label = "2019 baseline", vjust = -0.5, size = 3.5) +
+  annotate("text", x = as.Date("2020-03-01"), y = 115, 
+           label = "COVID-19", angle = 90, vjust = -0.5, size = 3, color = "red") +
+  labs(
+    title = "Birth Rate Recovery Track: Indexed to 2019 Baseline",
+    subtitle = "California by Race/Ethnicity",
+    x = "Date",
+    y = "Index (2019 = 100)",
+    color = "Race/Ethnicity"
+  ) +
+  theme_minimal() +
+  theme(legend.position = "bottom")
 ```
+
+The recovery track indexed to 2019 reveals important differences in COVID-19 impact and recovery across racial groups. A sharp drop in early 2021 affected all groups, with some experiencing declines to 75-80% of their 2019 baseline. White and Hispanic populations show gradual recovery, with rates approaching or reaching 100% by late 2022, suggesting resilience to the pandemic shock. In contrast, Black and "otherrace" populations remain persistently below baseline throughout the period, indicating incomplete recovery. Another notable drop occurs in early 2022 across all groups, possibly reflecting delayed pandemic effects or other external factors. This visualization highlights that while the pandemic initially affected all groups, recovery has been uneven, with some racial groups returning to pre-pandemic fertility levels while others continue to experience suppressed birth rates.
 
